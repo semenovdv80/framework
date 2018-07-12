@@ -2,41 +2,17 @@
 
 namespace Essential\Routing;
 
-#ФАЙЛ МАРШРУТОВ
-require_once $_SERVER['DOCUMENT_ROOT'].'/app/routes.php';
-
 class Router
 {
-    private static $routes;
-
-    ####################################################################################################################
-
-    #РЕГИСТРАЦИЯ МАРШРУТОВ
-    public static function get($route, $contract)
-    {
-        $contract = explode('@', $contract);
-        if (!empty($contract[0]) && !empty($contract[1])) {
-            $controller = $contract[0];
-            $action = $contract[1];
-            self::$routes[$route.'@get'] = ['method' => 'get', 'controller' => $controller, 'action' => $action];
-        }
-    }
-
-    public static function post($route, $contract)
-    {
-        $contract = explode('@', $contract);
-        if (!empty($contract[0]) && !empty($contract[1])) {
-            $controller = $contract[0];
-            $action = $contract[1];
-            self::$routes[$route.'@post'] = ['method' => 'post', 'controller' => $controller, 'action' => $action];
-        }
-    }
-    ####################################################################################################################
+    private static $routes = [];
 
     #МАРШРУТИЗАЦИЯ
     public static function start()
     {
         session_start();
+
+        self::$routes = Route::getRoutes();
+
         //путь
         $path = $_SERVER['REQUEST_URI'];
         //метод запроса
@@ -149,4 +125,3 @@ class Router
     ####################################################################################################################
 
 }
-?>
