@@ -2,6 +2,8 @@
 
 namespace Essential\Routing;
 
+use Dotenv\Dotenv;
+
 class Router
 {
     private static $routes = [];
@@ -11,10 +13,13 @@ class Router
     {
         session_start();
 
+        $dotenv = new Dotenv($_SERVER['DOCUMENT_ROOT']);
+        $dotenv->load();
+
         self::$routes = Route::getRoutes();
 
         //путь
-        $path = $_SERVER['REQUEST_URI'];
+        $path = strtok($_SERVER["REQUEST_URI"],'?'); //part of path without get params
         //метод запроса
         $method = $_SERVER['REQUEST_METHOD'];
         //получаем парметры маршрута
