@@ -1,7 +1,7 @@
 {
   "name": "semenovdv80/framework",
   "description": "The SemenovDV80/MVC Framework.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "keywords": ["framework", "semenovdv80"],
   "license": "MIT",
   "authors": [
@@ -16,7 +16,8 @@
     "php": "^7.1.3",
     "ext-mbstring": "*",
     "ext-openssl": "*",
-    "nesbot/carbon": "1.25.*"
+    "nesbot/carbon": "1.25.*",
+    "vlucas/phpdotenv": "^2.5"
   },
   "replace": {
     "essential/http": "self.version"
