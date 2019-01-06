@@ -20,19 +20,7 @@ function view($view_path, $data = null)
         include $view_path;
         $view = ob_get_contents();
         ob_clean();
-
-        preg_match_all("/@include.*\)/", $view, $includ_match);//поиск строчек @include в коде вида
-        if (!empty($includ_match[0])) {
-            foreach ($includ_match[0] as $includ) {
-                preg_match("/(\'|\").*(\'|\")/", $includ, $includ_patch);//поиск пути подключения
-                if (!empty($includ_patch[0])) {
-                    $patch = str_replace(".", "/", trim($includ_patch[0], "\'\""));//если путь к шаблону прописан через точку заменяем на слеш
-                    include $_SERVER['DOCUMENT_ROOT'] . '/resources/views/' . $patch . '.php';
-                    $includ_view = ob_get_clean();
-                    $view = preg_replace("/@include\($includ_patch[0]\).*/", $includ_view, $view);
-                }
-            }
-        }
+        $view = parseIncludes($view); //parse include statements
     } else {
         echo "Представление/View не найдено";
         die();
@@ -42,13 +30,14 @@ function view($view_path, $data = null)
     preg_match_all("/@section.*\)/", $view, $sect_match);//поиск строчек секций в коде вида
 
     if (!empty($layo_match[0]) && !empty($sect_match[0])) {
-        preg_match("/(\'|\").*(\'|\")/", $layo_match[0], $layo_path);//поиск пути к  layout шаблону
+        preg_match("/(\'|\").*(\'|\")/", $layo_match[0], $layo_path);//поиск пути к layout шаблону
         if (!empty($layo_path[0])) {
             $layout_path = str_replace(".", "/", trim($layo_path[0], "\'\""));//если путь к шаблону прописан через точку заменяем на слеш
             ob_start();
             include_once('resources/views/' . $layout_path . '.php');//начинаем строить вывод с layout шаблона
             $output = ob_get_contents();
             ob_clean();
+            $output = parseIncludes($output);
         };
 
         foreach ($sect_match[0] as $section) {
@@ -63,13 +52,33 @@ function view($view_path, $data = null)
                 }
             }
         }
-        $output = preg_replace("/@yield(.*)\)/si", '', $output);//удаляем все строчки @yield в шаблоне (если что-то не было заменено контентом)
-        session()->unflash();
-        echo($output);
-    } else {
-        session()->unflash();
-        echo $view;
+        $view = preg_replace("/@yield(.*)\)/si", '', $output);//удаляем все строчки @yield в шаблоне (если что-то не было заменено контентом)
     }
+    session()->unflash(); //delete flash result from session
+    echo $view;
+}
+
+/**
+ * Parse include views
+ *
+ * @param $view
+ * @return null|string|string[]
+ */
+function parseIncludes($view)
+{
+    preg_match_all("/@include.*\)/", $view, $includ_match);//поиск строчек @include в коде вида
+    if (!empty($includ_match[0])) {
+        foreach ($includ_match[0] as $includ) {
+            preg_match("/(\'|\").*(\'|\")/", $includ, $includ_patch);//поиск пути подключения
+            if (!empty($includ_patch[0])) {
+                $patch = str_replace(".", "/", trim($includ_patch[0], "\'\""));//если путь к шаблону прописан через точку заменяем на слеш
+                include $_SERVER['DOCUMENT_ROOT'] . '/resources/views/' . $patch . '.php';
+                $includ_view = ob_get_clean();
+                $view = preg_replace("/@include\($includ_patch[0]\).*/", $includ_view, $view);
+            }
+        }
+    }
+    return $view;
 }
 
 /**
@@ -106,3 +115,4 @@ function callback($buffer)
 {
 
 }
+

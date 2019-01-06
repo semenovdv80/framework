@@ -9,9 +9,6 @@ class Model
 {
     protected static $connect;
     protected static $modelTable;
-    protected static $columns = [];
-    protected static $vars = [];
-    protected static $values = [];
 
     /**
      * Get conection and table
@@ -59,17 +56,35 @@ class Model
     {
         try {
             self::init();
-
             foreach ($attributes as $column => $value) {
-                self::$columns[] = $column;
-                self::$vars[] = '?';
-                self::$values[] = $value;
+                $columns[] = $column;
+                $values[] = ':'.$column;
             }
 
-            $sql = 'INSERT INTO ' . self::$modelTable . ' (' . implode(',', self::$columns) . ') VALUES (' . implode(',', self::$vars) . ')';
+            $sql = 'INSERT INTO ' . self::$modelTable . ' (' . implode(',', $columns) . ') VALUES (' . implode(',', $values) . ')';
             $stm = self::$connect->prepare($sql);
-            $stm->execute(self::$values);
-            return self::$connect->lastInsertId();
+            $stm->execute($attributes);
+            return self::find(self::$connect->lastInsertId());
+        } catch (\Exception $exception) {
+            var_dump($exception->getMessage());
+        }
+    }
+
+    /**
+     * Update object record
+     */
+    public function update($attributes)
+    {
+        try {
+            self::init();
+            foreach ($attributes as $column => $value) {
+                $columns[] = $column. ' = :'.$column;
+            }
+            $sql = 'UPDATE ' . self::$modelTable . ' SET ' . implode(', ', $columns) . ' WHERE id = ' . $this->id;
+            $stm = self::$connect->prepare($sql);
+            $stm->execute($attributes);
+            $this->setAttributes($attributes);
+            return $this;
         } catch (\Exception $exception) {
             var_dump($exception->getMessage());
         }
@@ -84,12 +99,8 @@ class Model
     {
         try {
             self::init();
-            $args = func_get_args();
-            foreach ($args as $column) {
-                self::$columns[] = $column;
-            }
-
-            $query = 'SELECT ' . implode(', ', self::$columns) . ' FROM ' . self::$modelTable;
+            $columns = func_get_args();
+            $query = 'SELECT ' . implode(', ', $columns) . ' FROM ' . self::$modelTable;
             return new QueryBuilder(self::$connect, $query);
 
         } catch (\Exception $exception) {
@@ -148,6 +159,65 @@ class Model
             $query = 'SELECT * FROM ' . self::$modelTable . ' ORDER BY '.$col. ' '.$type;
             return new QueryBuilder(self::$connect, $query);
 
+        } catch (\Exception $exception) {
+            var_dump($exception->getMessage());
+        }
+    }
+
+    /**
+     * Get object of record
+     */
+    public static function find($id)
+    {
+        self::init();
+        $query = 'SELECT * FROM ' . self::$modelTable . ' WHERE id = '.$id;
+        $qb = new QueryBuilder(self::$connect, $query);
+        $rows = $qb->get();
+        $collection = self::makeCollection($rows);
+        return !empty($collection) ? array_shift($collection) : null;
+    }
+
+    /**
+     * Mace collection of objects
+     *
+     * @param $rows
+     * @return array
+     */
+    public static function makeCollection($rows)
+    {
+        $collection = [];
+        foreach ($rows as $row)
+        {
+            $obj = new static;
+            $collection[] = $obj->setAttributes(get_object_vars($row));
+        }
+        return $collection;
+    }
+
+    /**
+     * Set attributes
+     *
+     * @param $attributes
+     */
+    public function setAttributes($attributes)
+    {
+        foreach ($attributes as $name=>$value)
+        {
+            $this->$name = $value;
+        }
+        return $this;
+    }
+
+    /**
+     * Delete record
+     */
+    public function delete()
+    {
+        try {
+            self::init();
+            $sql = 'DELETE FROM ' . self::$modelTable . ' WHERE id = ' . $this->id;
+            $stm = self::$connect->prepare($sql);
+            $stm->execute();
         } catch (\Exception $exception) {
             var_dump($exception->getMessage());
         }
