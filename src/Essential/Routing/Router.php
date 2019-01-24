@@ -47,7 +47,7 @@ class Router
                                 if (empty($out_matches)){ $route = false; break;} //если в части маршрута с переменной не найдены фигурные скобки (это не тот  путь)
                             }
                             if ($route !=false)
-                                $arr_vars = array_diff($path_parts, $key_parts);//возвращает массив частей пути, которые являются переменными
+                                $arr_vars = array_values(array_diff($path_parts, $key_parts));//возвращает массив частей пути, которые являются переменными
                             break;
                         }
                     }
@@ -77,26 +77,26 @@ class Router
             // вызываем действие контроллера
             try {
 
-                //количество переданных параметров
-                $paramsCount = !empty($arr_vars) ? count($arr_vars) : 0;
-
                 //создаем reflection-отражение текущего метода
                 $reflectionMethod = new \ReflectionMethod($controller, $action);
-                //получаем массив параметров переданных методу
+
+                //получаем массив обьявленных входных параметров метода
                 $parameters = $reflectionMethod->getParameters();
-                //если переданы классы, инстпнцируем их
-                foreach ($parameters as $parameter) {
-                    $class = $parameter->getClass();
-                    if (! is_null($class))
-                        $instance = new $class->name;
-                    else
-                        $instance = $parameter;
-                    //добавляем в массив параметров
-                    $arr_vars[$paramsCount] = $instance;
-                    $paramsCount++;
+
+                //получаем массив параметров, переданных в маршруте
+                $arr_vars = isset($arr_vars) ? $arr_vars : [];
+
+                //если параметр не передан, но это класс, инстанцируем его
+                foreach ($parameters as $key => $parameter) {
+                    if (!isset($arr_vars[$key])) {
+                        $class = $parameter->getClass();
+                        if (!is_null($class)) {
+                            $arr_vars[$key] = new $class->name;
+                        }
+                    }
                 }
 
-                call_user_func_array(array($controller, $action), isset($arr_vars) ? $arr_vars : []);
+                $reflectionMethod->invokeArgs($controller, $arr_vars);
             }
             catch (\Exception $e)
             {
