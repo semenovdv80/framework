@@ -6,6 +6,7 @@ class Request
 {
     private static $request;
     private $method;
+    private $uri;
 
     /**
      * Request constructor.
@@ -13,6 +14,7 @@ class Request
     public function __construct()
     {
         $this->method = $_SERVER['REQUEST_METHOD'];
+        $this->uri = $_SERVER['REQUEST_URI'];
         $this->setRequestAttributes();
         self::$request = $this;
     }
@@ -56,5 +58,15 @@ class Request
             self::$request = new self();
         }
         return self::$request;
+    }
+
+    /**
+     * Get request uri
+     *
+     * @return mixed
+     */
+    public function uri()
+    {
+        return $this->uri;
     }
 }
