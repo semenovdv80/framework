@@ -18,9 +18,8 @@ function view($view_path, $data = null)
     if (file_exists($view_path)) {
         ob_start();
         include $view_path;
-        $view = ob_get_contents();
-        ob_clean();
-        $view = parseIncludes($view); //parse include statements
+        $view = ob_get_clean();
+        $view = parseIncludes($view, $data); //parse include statements
     } else {
         echo "Представление/View не найдено";
         die();
@@ -35,9 +34,8 @@ function view($view_path, $data = null)
             $layout_path = str_replace(".", "/", trim($layo_path[0], "\'\""));//если путь к шаблону прописан через точку заменяем на слеш
             ob_start();
             include_once('resources/views/' . $layout_path . '.php');//начинаем строить вывод с layout шаблона
-            $output = ob_get_contents();
-            ob_clean();
-            $output = parseIncludes($output);
+            $output = ob_get_clean();
+            $output = parseIncludes($output, $data);
         };
 
         foreach ($sect_match[0] as $section) {
@@ -55,6 +53,8 @@ function view($view_path, $data = null)
         $view = preg_replace("/@yield(.*)\)/si", '', $output);//удаляем все строчки @yield в шаблоне (если что-то не было заменено контентом)
     }
     session()->unflash(); //delete flash result from session
+    ob_end_clean();
+
     echo $view;
 }
 
@@ -64,13 +64,17 @@ function view($view_path, $data = null)
  * @param $view
  * @return null|string|string[]
  */
-function parseIncludes($view)
+function parseIncludes($view, $data)
 {
+    if (is_array($data)) {
+        extract($data, EXTR_OVERWRITE); //make variables from array keys
+    }
     preg_match_all("/@include.*\)/", $view, $includ_match);//поиск строчек @include в коде вида
     if (!empty($includ_match[0])) {
         foreach ($includ_match[0] as $includ) {
             preg_match("/(\'|\").*(\'|\")/", $includ, $includ_patch);//поиск пути подключения
             if (!empty($includ_patch[0])) {
+                ob_start();
                 $patch = str_replace(".", "/", trim($includ_patch[0], "\'\""));//если путь к шаблону прописан через точку заменяем на слеш
                 include $_SERVER['DOCUMENT_ROOT'] . '/resources/views/' . $patch . '.php';
                 $includ_view = ob_get_clean();
